@@ -43,11 +43,11 @@ const Classeslist = () => {
     }
   ];
 
-  const searchFilters = searchQuery ? [
+    const searchFilters = searchQuery ? [
     {
-      field:'name',operator:'constains' as const , value:searchQuery
+      field:'name', operator:'contains' as const, value: searchQuery
     }
-  ]: []
+  ] : []
 
   const classColumns = useMemo<ColumnDef<ClassDetails>[]>(() => [
         {

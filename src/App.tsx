@@ -27,6 +27,12 @@ import SubjectsCreate from "./pages/subjects/Create";
 import ClassesList from "./pages/classes/list";
 import ClassesCreate from "./pages/classes/create";
 import ClassesShow from "./pages/classes/show"
+import { Login } from "./pages/login";
+import { Register } from "./pages/register";
+import { ForgotPasswordForm } from "./components/refine-ui/form/forgot-password-form";
+import { authProvider } from "./providers/auth";
+
+
 
 function App() {
   return (
@@ -36,6 +42,7 @@ function App() {
           <DevtoolsProvider>
             <Refine
               dataProvider={dataProvider}
+              authProvider={authProvider}
               notificationProvider={useNotificationProvider()}
               routerProvider={routerProvider}
               options={{
@@ -45,43 +52,57 @@ function App() {
               }}
               resources={[
                 {
-                  name:'dashboard',
-                  list:'/',
-                  meta:{label:'Home',icon:<Home />}
+                  name: 'dashboard',
+                  list: '/',
+                  meta: { label: 'Home', icon: <Home /> }
                 },
                 {
-                  name:'subjects',
-                  list:'/subjects',
-                  create:'/subjects/create',
-                  meta:{label:'Subjects',icon:<BookOpen />}
+                  name: 'subjects',
+                  list: '/subjects',
+                  create: '/subjects/create',
+                  meta: { label: 'Subjects', icon: <BookOpen /> }
                 },
                 {
-                  name:'classes',
-                  list:'/classes',
-                  create:'/classes/create',
-                  show:'/classes/show/:id',
-                  meta:{label:'Classes',icon:<GraduationCap />}
+                  name: 'classes',
+                  list: '/classes',
+                  create: '/classes/create',
+                  show: '/classes/show/:id',
+                  meta: { label: 'Classes', icon: <GraduationCap /> }
                 }
               ]}
             >
               <Routes>
+                <Route
+                  element={
+                    <Authenticated key='public-routes' fallback={<Outlet />}>
+                      <NavigateToResource fallbackTo="/" />
+                    </Authenticated>
+                  }
+                >
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+                </Route>
+
                 <Route element={
-                  <Layout>
-                    <Outlet />
-                  </Layout>
+                  <Authenticated key='private-routes' fallback={<Login />} >
+                    <Layout>
+                      <Outlet />
+                    </Layout>
+                  </Authenticated>
                 }>
-                <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<Dashboard />} />
 
-                <Route path="subjects">
-                  <Route index element={<SubjectsList />} />
-                  <Route path="create" element={<SubjectsCreate />} />
-                </Route>
+                  <Route path="subjects">
+                    <Route index element={<SubjectsList />} />
+                    <Route path="create" element={<SubjectsCreate />} />
+                  </Route>
 
-                <Route path="classes">
-                  <Route index element= {<ClassesList />} />
-                  <Route path="create" element= {<ClassesCreate />} />
-                  <Route path="show/:id" element= {<ClassesShow />} />
-                </Route>
+                  <Route path="classes">
+                    <Route index element={<ClassesList />} />
+                    <Route path="create" element={<ClassesCreate />} />
+                    <Route path="show/:id" element={<ClassesShow />} />
+                  </Route>
 
                 </Route>
               </Routes>

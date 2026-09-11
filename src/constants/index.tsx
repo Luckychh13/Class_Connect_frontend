@@ -1,4 +1,4 @@
-import { GraduationCap, School } from "lucide-react";
+import { GraduationCap, School, ShieldCheck } from "lucide-react";
 
 export const USER_ROLES = {
     STUDENT: "student",
@@ -16,6 +16,11 @@ export const ROLE_OPTIONS = [
         value: USER_ROLES.TEACHER,
         label: "Teacher",
         icon: School,
+    },
+    {
+        value: USER_ROLES.ADMIN,
+        label: "Admin",
+        icon: ShieldCheck,
     },
 ];
 

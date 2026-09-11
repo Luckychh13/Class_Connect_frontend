@@ -22,11 +22,22 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { InputPassword } from "@/components/refine-ui/form/input-password";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ROLE_OPTIONS } from "@/constants";
+import { UserRole } from "@/types";
 
 export const SignUpForm = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+    const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
 
   const { open } = useNotification();
 
@@ -51,8 +62,10 @@ export const SignUpForm = () => {
     }
 
     register({
+      name,
       email,
       password,
+      role,
     });
   };
 
@@ -114,6 +127,17 @@ export const SignUpForm = () => {
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignUp}>
             <div className={cn("flex", "flex-col", "gap-2")}>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder=""
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+                        <div className={cn("flex", "flex-col", "gap-2")}>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -123,6 +147,25 @@ export const SignUpForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+            </div>
+
+            <div className={cn("flex", "flex-col", "gap-2", "mt-6")}>
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value as UserRole)}
+              >
+                <SelectTrigger id="role" className={cn("w-full")}>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div
@@ -148,6 +191,7 @@ export const SignUpForm = () => {
                 required
               />
             </div>
+            
 
             <Button
               type="submit"

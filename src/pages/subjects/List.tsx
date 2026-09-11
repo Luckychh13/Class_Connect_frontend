@@ -16,9 +16,9 @@ const SubjectsList = () => {
   const [searchQuery,setSearchQuery] = useState('')
   const [selectedDepartment,setSelectedDepartment] = useState('all')
 
-  const departmentFilters = selectedDepartment === 'all' ? [] : [
-    {field:'department', operator:'eq' as const , value:selectedDepartment}
-  ] 
+    const departmentFilters = selectedDepartment === 'all' ? [] : [
+    {field:'department', operator:'eq' as const , value: selectedDepartment}
+  ]
   const searchFilters = searchQuery ? [
     {field:'name', operator:'contains' as const, value: searchQuery}
   ] : []
