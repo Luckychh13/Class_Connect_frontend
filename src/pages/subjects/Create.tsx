@@ -1,14 +1,15 @@
 import { CreateView } from "@/components/refine-ui/views/create-view.tsx";
 import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { useBack } from "@refinedev/core";
+import { useBack, useGetIdentity, useGo } from "@refinedev/core";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "@refinedev/react-hook-form";
 import { subjectSchema } from "@/lib/schema.ts";
 import * as z from "zod";
-
+import { useEffect } from "react";
+import { User, UserRole } from "@/types";
 import {
   Form,
   FormControl,
@@ -31,6 +32,15 @@ import { DEPARTMENT_OPTIONS } from "@/constants";
 
 const SubjectsCreate = () => {
   const back = useBack();
+  const go = useGo();
+  const { data: identity, isLoading: identityLoading } = useGetIdentity<User>();
+  const isAuthorized = identity?.role === UserRole.ADMIN;
+
+  useEffect(() => {
+    if (!identityLoading && identity && !isAuthorized) {
+      go({ to: "/subjects" });
+    }
+  }, [identityLoading, identity, isAuthorized, go]);
 
   const form = useForm({
     resolver: zodResolver(subjectSchema),
@@ -54,6 +64,10 @@ const SubjectsCreate = () => {
       console.error("Error creating subject:", error);
     }
   };
+
+    if (identityLoading || !isAuthorized) {
+    return null;
+  }
 
   return (
     <CreateView className="class-view">

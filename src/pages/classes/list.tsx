@@ -1,4 +1,5 @@
 import { CreateButton } from '@/components/refine-ui/buttons/create.tsx'
+import { useGetIdentity } from '@refinedev/core'
 import { ShowButton } from '@/components/refine-ui/buttons/show.tsx'
 import { DataTable } from '@/components/refine-ui/data-table/data-table.tsx'
 import { Breadcrumb } from '@/components/refine-ui/layout/breadcrumb.tsx'
@@ -6,7 +7,7 @@ import { ListView } from '@/components/refine-ui/views/list-view.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from '@/components/ui/select.tsx'
-import { ClassDetails, Subject, User } from '@/types'
+import { ClassDetails, Subject, User, UserRole } from '@/types'
 import { useList } from '@refinedev/core'
 import { useTable } from '@refinedev/react-table'
 import { ColumnDef } from '@tanstack/react-table'
@@ -17,6 +18,8 @@ const Classeslist = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('all')
   const [selectedTeacher, setSelectedTeacher] = useState('all')
+  const { data: identity } = useGetIdentity<User>()
+  const canCreateClass = identity?.role === UserRole.ADMIN || identity?.role === UserRole.TEACHER
 
   const {query:subjectsQuery} = useList<Subject>({
     resource:'subjects',
@@ -192,7 +195,7 @@ const Classeslist = () => {
                             </SelectContent>
                         </Select>
 
-                        <CreateButton resource="classes" />
+                                                {canCreateClass && <CreateButton resource="classes" />}
                     </div>
                 </div>
             </div>

@@ -11,62 +11,66 @@ import { useTable } from '@refinedev/react-table'
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
+import { useGetIdentity } from '@refinedev/core'
+import { User, UserRole } from '@/types'
 
 const SubjectsList = () => {
-  const [searchQuery,setSearchQuery] = useState('')
-  const [selectedDepartment,setSelectedDepartment] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDepartment, setSelectedDepartment] = useState('all')
+  const { data: identity } = useGetIdentity<User>()
+  const canCreateSubject = identity?.role === UserRole.ADMIN
 
-    const departmentFilters = selectedDepartment === 'all' ? [] : [
-    {field:'department', operator:'eq' as const , value: selectedDepartment}
+  const departmentFilters = selectedDepartment === 'all' ? [] : [
+    { field: 'department', operator: 'eq' as const, value: selectedDepartment }
   ]
   const searchFilters = searchQuery ? [
-    {field:'name', operator:'contains' as const, value: searchQuery}
+    { field: 'name', operator: 'contains' as const, value: searchQuery }
   ] : []
 
   const columns = useMemo<ColumnDef<Subject>[]>(
-      () => [
+    () => [
       {
-        id:'code', 
-        accessorKey:'code', 
-        size:100,
-        header:() => <p className='coloumn-title ml-2'>Code</p>,
-        cell:({getValue}) => <Badge>{getValue<string>()}</Badge>
+        id: 'code',
+        accessorKey: 'code',
+        size: 100,
+        header: () => <p className='coloumn-title ml-2'>Code</p>,
+        cell: ({ getValue }) => <Badge>{getValue<string>()}</Badge>
       },
       {
-        id:'name',
-        accessorKey:'name',
-        size:200,
-        header:() => <p className='column-title'>Name</p>,
-        cell:({getValue}) => <span className='text-foreground'>{getValue<string>()}</span>,
-        filterFn:'includesString'
-      }, 
-      {
-        id:'department',
-        accessorKey:'department.name',
-        size:150,
-        header:() => <p className='column-title'>Department</p>,
-        cell:({getValue}) => <Badge variant='secondary'>{getValue<string>()}</Badge>
+        id: 'name',
+        accessorKey: 'name',
+        size: 200,
+        header: () => <p className='column-title'>Name</p>,
+        cell: ({ getValue }) => <span className='text-foreground'>{getValue<string>()}</span>,
+        filterFn: 'includesString'
       },
       {
-        id:'description',
-        accessorKey:'description',
-        size:300,
-        header:() => <p className='column-title'>Description</p>,
-        cell:({getValue}) => <span className='truncate line-clamp-2'>{getValue<string>()}</span>
+        id: 'department',
+        accessorKey: 'department.name',
+        size: 150,
+        header: () => <p className='column-title'>Department</p>,
+        cell: ({ getValue }) => <Badge variant='secondary'>{getValue<string>()}</Badge>
+      },
+      {
+        id: 'description',
+        accessorKey: 'description',
+        size: 300,
+        header: () => <p className='column-title'>Description</p>,
+        cell: ({ getValue }) => <span className='truncate line-clamp-2'>{getValue<string>()}</span>
       }
-    ],[])
+    ], [])
 
   const subjectTable = useTable<Subject>({
     columns,
-    refineCoreProps:{
-      resource:'subjects',
-      pagination: {pageSize:10, mode:'server'},
-      filters:{
-        permanent:[...departmentFilters, ...searchFilters]
+    refineCoreProps: {
+      resource: 'subjects',
+      pagination: { pageSize: 10, mode: 'server' },
+      filters: {
+        permanent: [...departmentFilters, ...searchFilters]
       },
-      sorters:{
-        initial:[
-          {field:'id', order:'desc'}
+      sorters: {
+        initial: [
+          { field: 'id', order: 'desc' }
         ]
       }
     }
@@ -85,18 +89,18 @@ const SubjectsList = () => {
             <Search className='search-icon' />
 
             <Input
-             type='text'
-             placeholder='Search by name...'
-             className='pl-10 w-full'
-             value={searchQuery}
-             onChange={(e) => setSearchQuery(e.target.value)}
+              type='text'
+              placeholder='Search by name...'
+              className='pl-10 w-full'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
           <div className='flex gap-2 w-full sm:w-auto'>
-            <Select 
-            value={selectedDepartment}
-            onValueChange={setSelectedDepartment}
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
             >
               <SelectTrigger>
                 <SelectValue placeholder='Filter by department' />
@@ -106,16 +110,16 @@ const SubjectsList = () => {
                 <SelectItem value='all'>
                   All Department
                 </SelectItem>
-                {DEPARTMENT_OPTIONS.map(department =>(
+                {DEPARTMENT_OPTIONS.map(department => (
                   <SelectItem key={department.value}
-                  value={department.value}>
+                    value={department.value}>
                     {department.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <CreateButton />
+            {canCreateSubject && <CreateButton />}
           </div>
         </div>
       </div>

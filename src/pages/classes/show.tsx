@@ -3,15 +3,77 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { ClassDetails } from '@/types'
-import { useShow } from '@refinedev/core'
+import { ClassDetails, User, UserRole } from '@/types'
+import { useCustomMutation, useGetIdentity, useNotification, useShow } from '@refinedev/core'
 import {AdvancedImage} from "@cloudinary/react"
 import { bannerPhoto } from '@/lib/cloudinary'
+import { useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { BACKEND_BASE_URL } from '@/constants'
 
 const Show = () => {
     const {query} = useShow<ClassDetails>({resource:'classes'})
     const classDetails = query.data?.data
     const {isLoading, isError} = query
+
+    const { data: identity } = useGetIdentity<User>()
+    const isStudent = identity?.role === UserRole.STUDENT
+
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [inviteCodeInput, setInviteCodeInput] = useState('')
+    const { open } = useNotification()
+    const { mutate: joinClass, isPending: isJoining } = useCustomMutation()
+
+        const handleJoinClass = () => {
+        if (!inviteCodeInput.trim()) {
+            open?.({
+                type: 'error',
+                message: 'Invite code required',
+                description: 'Please enter an invite code to join a class.',
+            })
+            return
+        }
+
+                joinClass(
+            {
+                url: `${BACKEND_BASE_URL}enrollments`,
+                method: 'post',
+                values: { inviteCode: inviteCodeInput.trim() },
+                config: {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                },
+            },
+            {
+                onSuccess: () => {
+                    open?.({
+                        type: 'success',
+                        message: 'Joined class',
+                        description: 'You have successfully joined the class.',
+                    })
+                    setIsDialogOpen(false)
+                    setInviteCodeInput('')
+                    query.refetch()
+                },
+                onError: (error: any) => {
+                    open?.({
+                        type: 'error',
+                        message: 'Failed to join class',
+                        description: error?.message ?? 'Please check your invite code and try again.',
+                    })
+                },
+            }
+        )
+    }
 
     if(isLoading || isError || !classDetails) {
         return (
@@ -98,20 +160,54 @@ const Show = () => {
 
              <Separator />
 
-        <div className="join">
-          <h2>🎓 Join Class</h2>
+                {isStudent && (
+          <>
+            <div className="join">
+              <h2>🎓 Join Class</h2>
 
-          <ol>
-            <li>Ask your teacher for the invite code.</li>
-            <li>Click on &quot;Join Class&quot; button.</li>
-            <li>Paste the code and click &quot;Join&quot;</li>
-          </ol>
-        </div>
+              <ol>
+                <li>Ask your teacher for the invite code.</li>
+                <li>Click on &quot;Join Class&quot; button.</li>
+                <li>Paste the code and click &quot;Join&quot;</li>
+              </ol>
+            </div>
 
-        <Button size="lg" className="w-full">
-          Join Class
-        </Button>
+            <Button size="lg" className="w-full" onClick={() => setIsDialogOpen(true)}>
+              Join Class
+            </Button>
+          </>
+        )}
         </Card>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Join Class</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-2 py-2">
+              <Label htmlFor="inviteCode">Invite Code</Label>
+                            <Input
+                id="inviteCode"
+                placeholder="Enter invite code"
+                value={inviteCodeInput}
+                onChange={(e) => setInviteCodeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleJoinClass()
+                }}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleJoinClass} disabled={isJoining}>
+                {isJoining ? 'Joining...' : 'Join'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </ShowView>
   )
 }

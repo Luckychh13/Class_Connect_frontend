@@ -1,12 +1,13 @@
-import {CreateView} from "@/components/refine-ui/views/create-view.tsx";
-import {Breadcrumb} from "@/components/refine-ui/layout/breadcrumb.tsx";
-import {Button} from "@/components/ui/button.tsx";
-import {useBack, useList} from "@refinedev/core";
-import {Separator} from "@/components/ui/separator.tsx";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx"
+import { CreateView } from "@/components/refine-ui/views/create-view.tsx";
+import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { useBack, useGetIdentity, useGo, useList } from "@refinedev/core";
+import { useEffect } from "react";
+import { Separator } from "@/components/ui/separator.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "@refinedev/react-hook-form"
-import {classSchema} from "@/lib/schema.ts";
+import { classSchema } from "@/lib/schema.ts";
 import * as z from "zod";
 
 import {
@@ -19,15 +20,24 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {Textarea} from "@/components/ui/textarea.tsx";
-import {Loader2} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { Loader2 } from "lucide-react";
 import UploadWidget from "@/constants/upload-widget";
-import { Subject, User } from "@/types";
+import { Subject, User, UserRole} from "@/types";
 
 
 const Create = () => {
     const back = useBack();
+    const go = useGo();
+    const { data: identity, isLoading: identityLoading } = useGetIdentity<User>();
+    const isAuthorized = identity?.role === UserRole.ADMIN || identity?.role === UserRole.TEACHER;
+
+    useEffect(() => {
+        if (!identityLoading && identity && !isAuthorized) {
+            go({ to: "/classes" });
+        }
+    }, [identityLoading, identity, isAuthorized, go]);
 
     const form = useForm({
         resolver: zodResolver(classSchema),
@@ -41,7 +51,7 @@ const Create = () => {
     });
 
     const {
-        refineCore: {onFinish},
+        refineCore: { onFinish },
         handleSubmit,
         formState: { isSubmitting, errors },
         control,
@@ -55,18 +65,18 @@ const Create = () => {
         }
     };
 
-    const {query: subjectsQuery} = useList<Subject>({
+    const { query: subjectsQuery } = useList<Subject>({
         resource: 'subjects',
         pagination: {
             pageSize: 100
         }
     })
 
-    const {query: teachersQuery} = useList<User>({
+    const { query: teachersQuery } = useList<User>({
         resource: 'users',
         filters: [
             {
-                field:'role', operator:'eq', value:'teacher'
+                field: 'role', operator: 'eq', value: 'teacher'
             }
         ],
         pagination: {
@@ -82,21 +92,26 @@ const Create = () => {
 
 
     const bannerPublicId = form.watch('bannerCldPubId')
-    const setBannerImage = (file:any,field:any) => {
-        if(file){
+    const setBannerImage = (file: any, field: any) => {
+        if (file) {
             field.onChange(file.url)
-            form.setValue('bannerCldPubId',file.publicId,{
-                shouldDirty:true,
-                shouldValidate:true
+            form.setValue('bannerCldPubId', file.publicId, {
+                shouldDirty: true,
+                shouldValidate: true
             })
-        }else{
+        } else {
             field.onChange('')
             form.setValue('bannerCldPubId', '', {
-                shouldDirty:true,
-                shouldValidate:true
+                shouldDirty: true,
+                shouldValidate: true
             })
         }
     }
+
+    if (identityLoading || !isAuthorized) {
+        return null;
+    }
+
     return (
         <CreateView className="class-view">
             <Breadcrumb />
@@ -123,23 +138,23 @@ const Create = () => {
                         <Form {...form}>
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                                 <FormField
-                                   control={control}
-                                   name="bannerUrl"
-                                   render={({field}) => (
-                                    <FormItem>
-                                        <FormLabel>Banner Image <span className="text-orange-600">*</span></FormLabel>
-                                        <FormControl>
-                                            <UploadWidget
-                                              value={field.value ? ({url: field.value, publicId: bannerPublicId ?? ''} as any) : null}
-                                              onChange={(file:any) => setBannerImage(file,field)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        {errors.bannerCldPubId && !errors.bannerUrl && (
-                                            <p className="text-destructive text-sm">{errors.bannerCldPubId.message?.toString()}</p>
-                                        )}
-                                    </FormItem>
-                                   )}
+                                    control={control}
+                                    name="bannerUrl"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Banner Image <span className="text-orange-600">*</span></FormLabel>
+                                            <FormControl>
+                                                <UploadWidget
+                                                    value={field.value ? ({ url: field.value, publicId: bannerPublicId ?? '' } as any) : null}
+                                                    onChange={(file: any) => setBannerImage(file, field)}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                            {errors.bannerCldPubId && !errors.bannerUrl && (
+                                                <p className="text-destructive text-sm">{errors.bannerCldPubId.message?.toString()}</p>
+                                            )}
+                                        </FormItem>
+                                    )}
                                 />
 
                                 <FormField
@@ -294,7 +309,7 @@ const Create = () => {
                                         <FormItem>
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
-                                                <Textarea
+                                                <Input
                                                     placeholder="Brief description about the class"
                                                     {...field}
                                                 />
