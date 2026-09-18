@@ -27,6 +27,7 @@ import SubjectsCreate from "./pages/subjects/Create";
 import ClassesList from "./pages/classes/list";
 import ClassesCreate from "./pages/classes/create";
 import ClassesShow from "./pages/classes/show"
+import ClassesEdit from "./pages/classes/edit"
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
 import { ForgotPasswordForm } from "./components/refine-ui/form/forgot-password-form";
@@ -67,6 +68,7 @@ function App() {
                   list: '/classes',
                   create: '/classes/create',
                   show: '/classes/show/:id',
+                  edit: '/classes/edit/:id',
                   meta: { label: 'Classes', icon: <GraduationCap /> }
                 }
               ]}
@@ -102,6 +104,7 @@ function App() {
                     <Route index element={<ClassesList />} />
                     <Route path="create" element={<ClassesCreate />} />
                     <Route path="show/:id" element={<ClassesShow />} />
+                    <Route path="edit/:id" element={<ClassesEdit />} />
                   </Route>
 
                 </Route>

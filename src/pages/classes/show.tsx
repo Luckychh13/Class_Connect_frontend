@@ -1,38 +1,59 @@
 import { ShowView, ShowViewHeader } from '@/components/refine-ui/views/show-view'
+import { EditButton } from '@/components/refine-ui/buttons/edit'
+import { useDelete, useGo } from '@refinedev/core'
+import { Trash } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ClassDetails, User, UserRole } from '@/types'
 import { useCustomMutation, useGetIdentity, useNotification, useShow } from '@refinedev/core'
-import {AdvancedImage} from "@cloudinary/react"
+import { AdvancedImage } from "@cloudinary/react"
 import { bannerPhoto } from '@/lib/cloudinary'
 import { useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BACKEND_BASE_URL } from '@/constants'
 
 const Show = () => {
-    const {query} = useShow<ClassDetails>({resource:'classes'})
+    const { query } = useShow<ClassDetails>({ resource: 'classes' })
     const classDetails = query.data?.data
-    const {isLoading, isError} = query
+    const { isLoading, isError } = query
 
     const { data: identity } = useGetIdentity<User>()
     const isStudent = identity?.role === UserRole.STUDENT
+    const canSeeInviteCode = identity?.role === UserRole.TEACHER || identity?.role === UserRole.ADMIN
+    const canManageClass = identity?.role === UserRole.TEACHER || identity?.role === UserRole.ADMIN
+
+    const go = useGo()
+    const { mutate: deleteClass, mutation: deleteMutation } = useDelete()
+
+    const handleDelete = () => {
+        if (!classDetails) return
+        deleteClass(
+            { resource: 'classes', id: classDetails.id },
+            {
+                onSuccess: () => {
+                    go({ to: '/classes' })
+                },
+            }
+        )
+    }
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [inviteCodeInput, setInviteCodeInput] = useState('')
     const { open } = useNotification()
-    const { mutate: joinClass, isPending: isJoining } = useCustomMutation()
+    const { mutate: joinClass, mutation } = useCustomMutation()
+    const isJoining = mutation.isPending
 
-        const handleJoinClass = () => {
+    const handleJoinClass = () => {
         if (!inviteCodeInput.trim()) {
             open?.({
                 type: 'error',
@@ -42,7 +63,7 @@ const Show = () => {
             return
         }
 
-                joinClass(
+        joinClass(
             {
                 url: `${BACKEND_BASE_URL}enrollments`,
                 method: 'post',
@@ -64,152 +85,194 @@ const Show = () => {
                     setInviteCodeInput('')
                     query.refetch()
                 },
-                onError: (error: any) => {
+                onError: async (error: any) => {
+                    let description = 'Please check your invite code and try again.'
+
+                    try {
+                        const response = error?.response
+                        if (response) {
+                            const body = await response.clone().json()
+                            description = body?.message ?? body?.error ?? description
+                        }
+                    } catch (_) {
+                        // fall back to default description
+                    }
+
                     open?.({
                         type: 'error',
                         message: 'Failed to join class',
-                        description: error?.message ?? 'Please check your invite code and try again.',
+                        description,
                     })
                 },
             }
         )
     }
 
-    if(isLoading || isError || !classDetails) {
+    if (isLoading || isError || !classDetails) {
         return (
             <ShowView className='class-view class-show'>
-                <ShowViewHeader resource='classes' title='Class Details'/>
+                <ShowViewHeader resource='classes' title='Class Details' />
 
                 <p className='state-message'>
                     {isLoading ? 'Loading class details... '
                         : isError ? 'Failed to load class details'
-                            :'Class details not found'}
+                            : 'Class details not found'}
                 </p>
             </ShowView>
         )
     }
 
     const teacherName = classDetails.teacher?.name ?? 'Unknown'
-    const teacherInitials = 
+    const teacherInitials =
         teacherName
             .split(' ')
             .filter(Boolean)
-            .slice(0,2)
-            .map((part) => part[0]?.toUpperCase())
+            .slice(0, 2)
+            .map((part:string) => part[0]?.toUpperCase())
             .join('')
     const placeholderUrl = `https://placehold.co/600*400?text=${encodeURIComponent(teacherInitials || 'NA')}`
-    const {name, description, status, capacity, bannerCldPubId, bannerUrl, subject, teacher, department,schedules, inviteCode} = classDetails        
-  return (
-    <ShowView className='class-view class-show'>
-        <ShowViewHeader resource='classes' title='Class Details' />
+    const { name, description, status, capacity, bannerCldPubId, bannerUrl, subject, teacher, department, schedules, inviteCode } = classDetails
+    return (
+        <ShowView className='class-view class-show'>
+            <ShowViewHeader resource='classes' title='Class Details' />
 
-        <div className='banner'>
-            {bannerUrl ? (
-                <AdvancedImage alt='Class Banner' cldImg={bannerPhoto(bannerCldPubId ?? '',name)} />
-            ) : <div className='placeholder'/>}
-        </div>
-
-        <Card className='details-card'>
-            <div className='details-header'>
-                <div>
-                    <h1>{name}</h1>
-                    <p>{description}</p>
-                </div>
-                <div>
-                    <Badge variant="outline">{capacity}</Badge>
-                    
-                    
-                    <Badge variant={status=='active' ? 'default' : 'secondary'} data-status={status}>{status.toUpperCase()}</Badge>
-                </div>
+            <div className='banner'>
+                {bannerUrl ? (
+                    <AdvancedImage alt='Class Banner' cldImg={bannerPhoto(bannerCldPubId ?? '', name)} />
+                ) : <div className='placeholder' />}
             </div>
 
-            <div className='details-grid'>
-                <div className='instructor'>
-                    <p>Instructor</p>
+            <Card className='details-card'>
+                <div className='details-header'>
                     <div>
-                        <img src={teacher?.image ?? placeholderUrl} alt={teacherName} />
+                        <h1>{name}</h1>
+                        <p>{description}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline">{capacity}</Badge>
+                        <Badge variant={status == 'active' ? 'default' : 'secondary'} data-status={status}>{status.toUpperCase()}</Badge>
+
+                    {canManageClass && (
+                      <>
+                        <EditButton resource="classes" recordItemId={classDetails.id} variant="outline" size="sm" />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDelete}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash className="h-4 w-4" />
+                          {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </>
+                    )}
+                    </div>
+                </div>
+
+                <div className='details-grid'>
+                    <div className='instructor'>
+                        <p>Instructor</p>
+                        <div>
+                            <img src={teacher?.image ?? placeholderUrl} alt={teacherName} />
+
+                            <div>
+                                <p>{teacherName}</p>
+                                <p>{teacher?.email}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className='department'>
+                        <p>Department</p>
 
                         <div>
-                            <p>{teacherName}</p>
-                            <p>{teacher?.email}</p>
+                            <p>{department?.name}</p>
+                            <p>{department?.description}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className='department'>
-                    <p>Department</p>
+                <Separator />
+
+                <div className='subject'>
+                    <p>Subject</p>
 
                     <div>
-                        <p>{department?.name}</p>
-                        <p>{department?.description}</p>
+                        <Badge variant='outline'>Code: {subject?.code}</Badge>
+                        <p>{subject?.name}</p>
+                        <p>{subject?.description}</p>
                     </div>
                 </div>
-            </div>
 
-            <Separator />
+                {canSeeInviteCode && (
+                    <>
+                        <Separator />
+                        <div className='subject'>
+                            <p>Invite Code</p>
+                            <div>
+                                <Badge variant='outline' className="font-mono text-base px-3 py-1">
+                                    {inviteCode}
+                                </Badge>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Share this code with students so they can join the class.
+                                </p>
+                            </div>
+                        </div>
+                    </>
+                )}
 
-            <div className='subject'>
-                <p>Subject</p>
-
-                <div>
-                    <Badge variant='outline'>Code: {subject?.code}</Badge>
-                    <p>{subject?.name}</p>
-                    <p>{subject?.description}</p>
-                </div>
-            </div>
-
-             <Separator />
+                <Separator />
 
                 {isStudent && (
-          <>
-            <div className="join">
-              <h2>🎓 Join Class</h2>
+                    <>
+                        <div className="join">
+                            <h2>🎓 Join Class</h2>
 
-              <ol>
-                <li>Ask your teacher for the invite code.</li>
-                <li>Click on &quot;Join Class&quot; button.</li>
-                <li>Paste the code and click &quot;Join&quot;</li>
-              </ol>
-            </div>
+                            <ol>
+                                <li>Ask your teacher for the invite code.</li>
+                                <li>Click on &quot;Join Class&quot; button.</li>
+                                <li>Paste the code and click &quot;Join&quot;</li>
+                            </ol>
+                        </div>
 
-            <Button size="lg" className="w-full" onClick={() => setIsDialogOpen(true)}>
-              Join Class
-            </Button>
-          </>
-        )}
-        </Card>
+                        <Button size="lg" className="w-full" onClick={() => setIsDialogOpen(true)}>
+                            Join Class
+                        </Button>
+                    </>
+                )}
+            </Card>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Join Class</DialogTitle>
-            </DialogHeader>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Join Class</DialogTitle>
+                    </DialogHeader>
 
-            <div className="flex flex-col gap-2 py-2">
-              <Label htmlFor="inviteCode">Invite Code</Label>
-                            <Input
-                id="inviteCode"
-                placeholder="Enter invite code"
-                value={inviteCodeInput}
-                onChange={(e) => setInviteCodeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleJoinClass()
-                }}
-              />
-            </div>
+                    <div className="flex flex-col gap-2 py-2">
+                        <Label htmlFor="inviteCode">Invite Code</Label>
+                        <Input
+                            id="inviteCode"
+                            placeholder="Enter invite code"
+                            value={inviteCodeInput}
+                            onChange={(e) => setInviteCodeInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleJoinClass()
+                            }}
+                        />
+                    </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleJoinClass} disabled={isJoining}>
-                {isJoining ? 'Joining...' : 'Join'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-    </ShowView>
-  )
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleJoinClass} disabled={isJoining}>
+                            {isJoining ? 'Joining...' : 'Join'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </ShowView>
+    )
 }
 
 export default Show
